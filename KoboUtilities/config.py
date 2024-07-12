@@ -10,7 +10,6 @@ __docformat__ = 'restructuredtext en'
 import copy, traceback
 
 # calibre Python 3 compatibility.
-import six
 from six import text_type as unicode
 
 from functools import partial
@@ -63,9 +62,7 @@ KEY_STORE_ON_CONNECT               = 'storeOnConnect'
 KEY_PROMPT_TO_STORE                = 'promptToStore'
 KEY_STORE_IF_MORE_RECENT           = 'storeIfMoreRecent'
 KEY_DO_NOT_STORE_IF_REOPENED       = 'doNotStoreIfReopened'
-KEY_DO_UPDATE_CHECK                = 'doFirmwareUpdateCheck'
-KEY_LAST_FIRMWARE_CHECK_TIME       = 'firmwareUpdateCheckLastTime'
-KEY_DO_EARLY_FIRMWARE_CHECK        = 'doEarlyFirmwareUpdate'
+
 KEY_FOR_DEVICE                     = 'forDevice'
 KEY_INDIVIDUAL_DEVICE_OPTIONS      = 'individualDeviceOptions'
 
@@ -216,10 +213,10 @@ DEFAULT_DEVICES_VALUES = {}
 BOOKMARK_OPTIONS_DEFAULTS = {
                 KEY_STORE_BOOKMARK:             True,
                 KEY_READING_STATUS:             True,
-                KEY_DATE_TO_NOW:                True, 
-                KEY_SET_RATING:                 True, 
-                KEY_CLEAR_IF_UNREAD:            False, 
-                KEY_BACKGROUND_JOB:             False, 
+                KEY_DATE_TO_NOW:                True,
+                KEY_SET_RATING:                 True,
+                KEY_CLEAR_IF_UNREAD:            False,
+                KEY_BACKGROUND_JOB:             False,
                 KEY_STORE_IF_MORE_RECENT:       False,
                 KEY_DO_NOT_STORE_IF_REOPENED:   False
                 }
@@ -308,12 +305,6 @@ SETRELATEDBOOKS_OPTIONS_DEFAULTS = {
                 KEY_RELATED_BOOKS_TYPE: KEY_RELATED_BOOKS_SERIES,
                 }
 
-UPDATE_OPTIONS_DEFAULTS = {
-                KEY_DO_UPDATE_CHECK: False,
-                KEY_LAST_FIRMWARE_CHECK_TIME: 0,
-                KEY_DO_EARLY_FIRMWARE_CHECK: False
-                }
-
 BACKUP_OPTIONS_DEFAULTS = {
                 KEY_DO_DAILY_BACKUP:        False,
                 KEY_BACKUP_EACH_CONNECTION: False,
@@ -337,7 +328,6 @@ CUSTOM_COLUMNS_OPTIONS_DEFAULTS = {
 
 DEFAULT_PROFILE_VALUES = {
                           KEY_FOR_DEVICE:               None,
-                          UPDATE_OPTIONS_STORE_NAME:    UPDATE_OPTIONS_DEFAULTS,
                           STORE_OPTIONS_STORE_NAME:     STORE_OPTIONS_DEFAULTS,
                          }
 DEFAULT_LIBRARY_VALUES = {
@@ -403,7 +393,6 @@ plugin_prefs.defaults[FIXDUPLICATESHELVES_OPTIONS_STORE_NAME] = FIXDUPLICATESHEL
 plugin_prefs.defaults[ORDERSERIESSHELVES_OPTIONS_STORE_NAME]  = ORDERSERIESSHELVES_OPTIONS_DEFAULTS
 plugin_prefs.defaults[SETRELATEDBOOKS_OPTIONS_STORE_NAME]     = SETRELATEDBOOKS_OPTIONS_DEFAULTS
 plugin_prefs.defaults[STORE_LIBRARIES]                  = {}
-plugin_prefs.defaults[UPDATE_OPTIONS_STORE_NAME]        = UPDATE_OPTIONS_DEFAULTS
 plugin_prefs.defaults[BACKUP_OPTIONS_STORE_NAME]        = BACKUP_OPTIONS_DEFAULTS
 plugin_prefs.defaults[GET_SHELVES_OPTIONS_STORE_NAME]   = GET_SHELVES_OPTIONS_DEFAULTS
 plugin_prefs.defaults[STORE_DEVICES]                    = DEFAULT_DEVICES_VALUES
@@ -418,8 +407,6 @@ try:
 except NameError:
     debug_print("KoboUtilites::action.py - exception when loading translations")
     pass # load_translations() added in calibre 1.9
-
-#            update_prefs = get_plugin_pref(UPDATE_OPTIONS_STORE_NAME, UPDATE_OPTIONS_DEFAULTS)
 
 def get_plugin_pref(store_name, option):
     debug_print("get_plugin_pref - start - store_name='%s', option='%s'" % (store_name, option))
@@ -582,7 +569,7 @@ class ProfilesTab(QWidget):
     def __init__(self, parent_dialog, plugin_action):
         self.parent_dialog = parent_dialog
         QWidget.__init__(self)
-        
+
         self.plugin_action = plugin_action
         self.help_anchor = "configuration"
         self.library_config = get_library_config(self.plugin_action.gui.current_db)
@@ -593,7 +580,7 @@ class ProfilesTab(QWidget):
 
         layout = QVBoxLayout(self)
         self.setLayout(layout)
-        
+
         # -------- Lists configuration ---------
         select_profile_layout = QHBoxLayout()
         layout.addLayout(select_profile_layout)
@@ -667,6 +654,12 @@ class ProfilesTab(QWidget):
         self.do_not_store_if_reopened_checkbox.setToolTip(_("Do not store the reading position if the library has the book as finished. This is if the percent read is 100%."))
         options_layout.addWidget(self.do_not_store_if_reopened_checkbox, 1, 2, 1, 1)
 
+        layout.addWidget(QLabel(
+            _('You can use this site to download the latest version of Kobo firmware:')))
+        fwsite = QLabel('https://pgaskin.net/KoboStuff/kobofirmware.html')
+        fwsite.setTextInteractionFlags(Qt.TextSelectableByMouse|Qt.TextSelectableByKeyboard)
+        layout.addWidget(fwsite)
+
         layout.addStretch(1)
 
     def create_custom_column_controls(self, options_layout, custom_col_name, row_number=1):
@@ -691,11 +684,11 @@ class ProfilesTab(QWidget):
         self.store_if_more_recent_checkbox.setEnabled(checked)
         self.do_not_store_if_reopened_checkbox.setEnabled(checked)
 
-    # Called by Calibre before save_settings 
+    # Called by Calibre before save_settings
     def validate(self):
 #        import traceback
 #        traceback.print_stack()
-        
+
         debug_print('BEGIN Validate')
         valid = True
         # Only save if we were able to get data to avoid corrupting stored data
@@ -882,7 +875,7 @@ class ProfilesTab(QWidget):
             if typ in column_types and not column['is_multiple']:
                 available_columns[key] = column
         return available_columns
-    
+
     def create_custom_column(self, lookup_name=None):
         debug_print("ProfilesTab:create_custom_column - lookup_name:", lookup_name)
         display_params = {
@@ -890,7 +883,7 @@ class ProfilesTab(QWidget):
         }
         datatype = CUSTOM_COLUMN_DEFAULTS[lookup_name]['datatype']
         column_heading  = CUSTOM_COLUMN_DEFAULTS[lookup_name]['column_heading']
-        
+
         # current_lookup_names = self.custom_columns[lookup_name]['current_columns'].keys()
         new_lookup_name = lookup_name
         # i = 0
@@ -909,7 +902,7 @@ class ProfilesTab(QWidget):
             self.custom_columns[lookup_name]['combo_box'].populate_combo(self.custom_columns[lookup_name]['current_columns'](), result[1])
             self.parent_dialog.must_restart = True
             return True
-        
+
         return False
 
 
@@ -923,7 +916,7 @@ class DevicesTab(QWidget):
         self.gui = plugin_action.gui
         self._connected_device_info = plugin_action.connected_device_info
         self.library_config = get_library_config(self.gui.current_db)
-        
+
         self.individual_device_options = get_plugin_pref(COMMON_OPTIONS_STORE_NAME, KEY_INDIVIDUAL_DEVICE_OPTIONS)
 
         layout = QVBoxLayout()
@@ -950,14 +943,14 @@ class DevicesTab(QWidget):
         self.add_device_btn.setIcon(QIcon(I('plus.png')))
         self.add_device_btn.clicked.connect(self._add_device_clicked)
         buttons_layout.addWidget(self.add_device_btn, 1)
-        
+
         self.rename_device_btn = QToolButton(self)
         self.rename_device_btn.setIcon(get_icon('edit-undo.png'))
         self.rename_device_btn.setToolTip(_('Rename the currently connected device'))
         self.rename_device_btn.clicked.connect(self._rename_device_clicked)
         self.rename_device_btn.setEnabled(False)
         buttons_layout.addWidget(self.rename_device_btn)
-        
+
         self.delete_device_btn = QToolButton(self)
         self.delete_device_btn.setIcon(QIcon(I('trash.png')))
         self.delete_device_btn.setToolTip(_('Delete this device from the device list'))
@@ -966,29 +959,13 @@ class DevicesTab(QWidget):
         buttons_layout.addWidget(self.delete_device_btn)
 
         self.device_options_for_each_checkbox = QCheckBox(_('Configure options for each device'), self)
-        self.device_options_for_each_checkbox.setToolTip(_('Selected this option to configure backup and firmware for each device.'))
+        self.device_options_for_each_checkbox.setToolTip(_('Selected this option to configure backup for each device.'))
         self.device_options_for_each_checkbox.clicked.connect(self.device_options_for_each_checkbox_clicked)
         if self.individual_device_options:
             self.device_options_for_each_checkbox.setCheckState(Qt.Checked)
         layout.addWidget(self.device_options_for_each_checkbox)
 
-        update_options_group = QGroupBox(_('Firmware Update Options'), self)
-        layout.addWidget(update_options_group)
         options_layout = QGridLayout()
-        update_options_group.setLayout(options_layout)
-
-        self.do_update_check = QCheckBox(_('Check for Kobo firmware updates daily?'), self)
-        self.do_update_check.setToolTip(_('If this is selected the plugin will check for Kobo firmware updates when your Kobo device is plugged in, once per 24-hour period.'))
-        options_layout.addWidget(self.do_update_check, 0, 0, 1, 1)
-
-        self.do_early_firmware_check = QCheckBox(_('Use early firmware adopter affiliate?'), self)
-        self.do_early_firmware_check.setToolTip(_('WARNING: THIS OPTION RISKS DOWNLOADING THE WRONG FIRMWARE FOR YOUR DEVICE! YOUR DEVICE MAY NOT FUNCTION PROPERLY IF THIS HAPPENS! Choose this option to attempt to download Kobo firmware updates before they are officially available for your device.'))
-        options_layout.addWidget(self.do_early_firmware_check, 0, 1, 1, 1)
-
-        backup_options_group = QGroupBox(_('Device Database Backup'), self)
-        layout.addWidget(backup_options_group)
-        options_layout = QGridLayout()
-        backup_options_group.setLayout(options_layout)
 
         self.do_daily_backp_checkbox = QCheckBox(_('Backup the device database daily'), self)
         self.do_daily_backp_checkbox.setToolTip(_('If this is selected the plugin will backup the device database the first time it is connected each day.'))
@@ -1195,18 +1172,11 @@ class DevicesTab(QWidget):
         if self.individual_device_options:
             (self.current_device_info, _is_connected) = self.devices_table.get_selected_device_info()
             if self.current_device_info:
-                update_prefs = self.current_device_info.get(UPDATE_OPTIONS_STORE_NAME, UPDATE_OPTIONS_DEFAULTS)
                 backup_prefs = self.current_device_info.get(BACKUP_OPTIONS_STORE_NAME, BACKUP_OPTIONS_DEFAULTS)
             else:
-                update_prefs = UPDATE_OPTIONS_DEFAULTS
                 backup_prefs = BACKUP_OPTIONS_DEFAULTS
         else:
-            update_prefs = get_plugin_prefs(UPDATE_OPTIONS_STORE_NAME)
             backup_prefs = get_plugin_prefs(BACKUP_OPTIONS_STORE_NAME)
-
-        do_check_for_firmware_updates = get_pref(update_prefs, UPDATE_OPTIONS_STORE_NAME, KEY_DO_UPDATE_CHECK)
-        do_early_firmware_updates     = get_pref(update_prefs, UPDATE_OPTIONS_STORE_NAME, KEY_DO_EARLY_FIRMWARE_CHECK)
-        self.update_check_last_time   = get_pref(update_prefs, UPDATE_OPTIONS_STORE_NAME, KEY_LAST_FIRMWARE_CHECK_TIME)
 
         do_daily_backup          = get_pref(backup_prefs, BACKUP_OPTIONS_STORE_NAME, KEY_DO_DAILY_BACKUP)
         backup_each_connection   = get_pref(backup_prefs, BACKUP_OPTIONS_STORE_NAME, KEY_BACKUP_EACH_CONNECTION)
@@ -1214,8 +1184,6 @@ class DevicesTab(QWidget):
         copies_to_keep           = get_pref(backup_prefs, BACKUP_OPTIONS_STORE_NAME, KEY_BACKUP_COPIES_TO_KEEP)
         zip_database             = get_pref(backup_prefs, BACKUP_OPTIONS_STORE_NAME, KEY_BACKUP_ZIP_DATABASE)
 
-        self.do_update_check.setCheckState(Qt.Checked if do_check_for_firmware_updates else Qt.Unchecked)
-        self.do_early_firmware_check.setCheckState(Qt.Checked if do_early_firmware_updates else Qt.Unchecked)
         self.do_daily_backp_checkbox.setCheckState(Qt.Checked if do_daily_backup else Qt.Unchecked)
         self.backup_each_connection_checkbox.setCheckState(Qt.Checked if backup_each_connection else Qt.Unchecked)
         self.dest_directory_edit.setText(dest_directory)
@@ -1235,26 +1203,18 @@ class DevicesTab(QWidget):
     def persist_devices_config(self):
         debug_print("DevicesTab:persist_devices_config - Start")
 
-        update_prefs = {}
-        update_prefs[KEY_DO_UPDATE_CHECK]          = self.do_update_check.checkState() == Qt.Checked
-        update_prefs[KEY_DO_EARLY_FIRMWARE_CHECK]  = self.do_early_firmware_check.checkState() == Qt.Checked
-        update_prefs[KEY_LAST_FIRMWARE_CHECK_TIME] = self.update_check_last_time
-        debug_print("DevicesTab:persist_devices_config - update_prefs:", update_prefs)
-
         backup_prefs = {}
         backup_prefs[KEY_DO_DAILY_BACKUP]       = self.do_daily_backp_checkbox.checkState() == Qt.Checked
         backup_prefs[KEY_BACKUP_EACH_CONNECTION]= self.backup_each_connection_checkbox.checkState() == Qt.Checked
         backup_prefs[KEY_BACKUP_ZIP_DATABASE]   = self.zip_database_checkbox.checkState() == Qt.Checked
         backup_prefs[KEY_BACKUP_DEST_DIRECTORY] = unicode(self.dest_directory_edit.text())
-        backup_prefs[KEY_BACKUP_COPIES_TO_KEEP] = int(unicode(self.copies_to_keep_spin.value())) if self.copies_to_keep_checkbox.checkState() == Qt.Checked else -1 
+        backup_prefs[KEY_BACKUP_COPIES_TO_KEEP] = int(unicode(self.copies_to_keep_spin.value())) if self.copies_to_keep_checkbox.checkState() == Qt.Checked else -1
         debug_print("DevicesTab:persist_devices_config - backup_prefs:", backup_prefs)
 
         if self.individual_device_options:
             if self.current_device_info:
-                self.current_device_info[UPDATE_OPTIONS_STORE_NAME] = update_prefs
                 self.current_device_info[BACKUP_OPTIONS_STORE_NAME] = backup_prefs
         else:
-            plugin_prefs[UPDATE_OPTIONS_STORE_NAME] = update_prefs
             plugin_prefs[BACKUP_OPTIONS_STORE_NAME] = backup_prefs
 
         new_prefs = get_plugin_prefs(COMMON_OPTIONS_STORE_NAME)

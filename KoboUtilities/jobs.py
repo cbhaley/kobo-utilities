@@ -109,37 +109,6 @@ def do_koboutilitiesa(books_to_scan, options, cpus, notification=lambda x,y:x):
     return stored_locations
 
 
-def do_check_firmware_update(update_data, update_dest_dir, cpus, notification=lambda x,y:x):
-    debug_print("do_check_firmware_update - start")
-    server = Server(pool_size=cpus)
-
-    debug_print("do_check_firmware_update - %s" % update_data["UpgradeURL"])
-
-    notification(0.01, "Fetching update data")
-
-    if update_data["UpgradeURL"] is not None:
-        notification(0.25, "Fetching update file")
-        debug_print('do_check_firmware_update - update_url:%s' % update_data["UpgradeURL"])
-        resp = urlopen(update_data["UpgradeURL"])
-        if resp.getcode() == 200:
-            from calibre.ptempfile import PersistentTemporaryFile
-            notification(0.5, "Saving firmware update data to temporary location")
-            zf_tmp = PersistentTemporaryFile('kobo-update.zip')
-            zf_tmp.write(resp.read())
-            zf_update = zipfile.ZipFile(zf_tmp)
-            notification(0.75, "Writing update file to Kobo device")
-            zf_update.extractall(update_dest_dir)
-            notification(1, "Update file written")
-            return True
-        else:
-            return Exception("Couldn't fetch firmware update: got HTTP%s" % resp.getcode())
-    else:
-        debug_print('do_check_firmware_update - No firmware update required')
-        notification(1, "No update available")
-        return False
-
-
-
 def do_device_database_backup(backup_options, cpus, notification=lambda x,y:x):
     logger = Log()
     JOBS_DEBUG = True
@@ -154,7 +123,7 @@ def do_device_database_backup(backup_options, cpus, notification=lambda x,y:x):
             backup_zip.write(file_to_add, basename)
         except Exception as e:
             debug_print("do_device_database_backup:backup_file - file '%s' not added. Exception was: %s" % (file_to_add, e))
-    
+
     notification(0.01, _("Backing up the Kobo device database"))
     debug_print('do_device_database_backup - backup_options=', backup_options)
     device_name             = backup_options['device_name']
@@ -184,11 +153,11 @@ def do_device_database_backup(backup_options, cpus, notification=lambda x,y:x):
         debug_print('do_device_database_backup - backup_file_search=', backup_file_search)
         backup_files = glob.glob(backup_file_search)
         debug_print('do_device_database_backup - backup_files=', backup_files)
-    
+
         if len(backup_files) > 0:
             debug_print('auto_backup_device_database - Backup already done today')
             notification(1, _("Backup already done"))
-            return 
+            return
 
     notification(0.25, _("Backing up database KoboReader.sqlite"))
     backup_file_name = backup_file_template.format(device_name, serial_number, backup_timestamp)
@@ -233,16 +202,16 @@ def do_device_database_backup(backup_options, cpus, notification=lambda x,y:x):
     with ZipFile(config_backup_path, 'w') as config_backup_zip:
         config_file = os.path.join(device_path, '.kobo', 'Kobo', 'Kobo eReader.conf')
         backup_file(config_backup_zip, config_file)
-        
+
         version_file = os.path.join(device_path, '.kobo', 'version')
         backup_file(config_backup_zip, version_file)
-        
+
         affiliate_file = os.path.join(device_path, '.kobo', 'affiliate.conf')
         backup_file(config_backup_zip, affiliate_file)
-        
+
         ade_file = os.path.join(device_path, '.adobe-digital-editions')
         backup_file(config_backup_zip, ade_file)
-        
+
         for root, _dirs, files in os.walk(ade_file):
             for fn in files:
                 absfn = os.path.join(root, fn)
@@ -403,7 +372,7 @@ def _store_current_bookmark(log, book_id, contentIDs, options):
                 result = None
 
         cursor.close()
-    
+
     return result
 
 
@@ -429,7 +398,7 @@ def _store_bookmarks(log, books, options):
 
         cursor = connection.cursor()
         count_books += 1
-        
+
         debug_print("_store_bookmarks - about to start book loop")
         for book_id, contentIDs, title, authors, current_chapterid, current_percentRead, current_rating, current_last_read in books:
             device_status = None
@@ -514,12 +483,12 @@ def _store_bookmarks(log, books, options):
                 new_kobo_percentRead = device_status['___PercentRead']
             elif device_status['ReadStatus'] == 2:
                 new_kobo_percentRead = 100
-                
+
             if device_status['Rating']:
                 new_kobo_rating = device_status['Rating'] * 2
             else:
                 new_kobo_rating = 0
-            
+
 
             reading_position_changed = False
             if device_status['ReadStatus'] == 0 and clear_if_unread:
@@ -584,7 +553,7 @@ def _store_bookmarks(log, books, options):
 
         debug_print("_store_bookmarks - finished book loop")
         cursor.close()
-    
+
     debug_print("_store_bookmarks - finished")
     return stored_locations
 
@@ -608,7 +577,7 @@ def do_clean_images_dir(options, cpus, notification=lambda x,y:x):
     notification(2/7, 'Getting ImageIDs from SD card images directory')
     debug_print("Getting ImageIDs from SD images directory - Path is: '%s'" % (sd_image_path))
     imageids_files_sd   = _get_file_imageIds(sd_image_path)
-    
+
     notification(3/7, 'Getting ImageIDs from device database.')
     debug_print("Getting ImageIDs from device database.")
     imageids_db = _get_imageId_set(device_database_path)
