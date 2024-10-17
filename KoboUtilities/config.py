@@ -359,7 +359,7 @@ CUSTOM_COLUMN_DEFAULTS = {
                     'description' : _("Percentage read for the book"),
                     'columns_list' : 'avail_number_columns',
                     'config_label' : _('Percent Read Column:'),
-                    'config_tool_tip' : _("Column used to store the current percent read. The column type must be a 'integer'. Leave this blank if you do not want to store or restore the percentage read."),
+                    'config_tool_tip' : _("Column used to store the current percent read. The column type must be 'integer' or 'float'. Leave this blank if you do not want to store or restore the percentage read."),
                 },
                 CUSTOM_COLUMN_DEFAULT_LOOKUP_RATING : {
                     'column_heading': _("Kobo Rating"),
